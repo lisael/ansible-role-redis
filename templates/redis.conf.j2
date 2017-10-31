@@ -1,8 +1,13 @@
 # {{ ansible_managed }}
 
 daemonize yes
+
 pidfile /var/run/redis/{{ redis_daemon }}.pid
+
 port {{ redis_port }}
+
+tcp-backlog 511
+
 bind {{ redis_bind_interface }}
 
 {% if redis_unixsocket %}
@@ -11,26 +16,36 @@ unixsocket {{ redis_unixsocket }}
 
 timeout {{ redis_timeout }}
 
+tcp-keepalive 0
+
 loglevel {{ redis_loglevel }}
 logfile {{ redis_logfile }}
 
-# To enable logging to the system logger, just set 'syslog-enabled' to yes,
-# and optionally update the other syslog parameters to suit your needs.
-# syslog-enabled no
-# syslog-ident redis
-# syslog-facility local0
+syslog-enabled no
+syslog-ident redis
+syslog-facility local0
 
 databases {{ redis_databases }}
+
+stop-writes-on-bgsave-error yes
 
 {% for save in redis_save %}
 save {{ save }}
 {% endfor %}
 
 rdbcompression {{ redis_rdbcompression }}
+
+rdbchecksum yes
+
 dbfilename {{ redis_dbfilename }}
 dir {{ redis_dbdir }}
 
-# maxclients 128
+slave-serve-stale-data yes
+slave-read-only yes
+repl-disable-tcp-nodelay no
+slave-priority 100
+
+maxclients 10000
 
 {% if redis_maxmemory %}
 maxmemory {{ redis_maxmemory }}
@@ -39,6 +54,7 @@ maxmemory-samples {{ redis_maxmemory_samples }}
 {% endif %}
 
 appendonly {{ redis_appendonly }}
+appendfilename "appendonly.aof"
 appendfsync {{ redis_appendfsync }}
 no-appendfsync-on-rewrite no
 
@@ -53,3 +69,25 @@ requirepass {{ redis_requirepass }}
 {% for redis_disabled_command in redis_disabled_commands %}
 rename-command {{ redis_disabled_command }} ""
 {% endfor %}
+
+auto-aof-rewrite-percentage 100
+auto-aof-rewrite-min-size 64mb
+lua-time-limit 5000
+slowlog-log-slower-than 10000
+slowlog-max-len 128
+latency-monitor-threshold 0
+notify-keyspace-events ""
+hash-max-ziplist-entries 512
+hash-max-ziplist-value 64
+list-max-ziplist-entries 512
+list-max-ziplist-value 64
+set-max-intset-entries 512
+zset-max-ziplist-entries 128
+zset-max-ziplist-value 64
+hll-sparse-max-bytes 3000
+activerehashing yes
+client-output-buffer-limit normal 0 0 0
+client-output-buffer-limit slave 256mb 64mb 60
+client-output-buffer-limit pubsub 32mb 8mb 60
+hz 10
+aof-rewrite-incremental-fsync yes
